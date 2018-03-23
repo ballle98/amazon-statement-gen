@@ -92,26 +92,23 @@ def main(argv=None):
             orderItems[item['Order ID']].append(item)   
             
         with open('out.csv', 'w') as csvfile:
-            fieldnames = ['date', 'description', 'charge']
+            fieldnames = ['Date', 'Description', 'Deposit', 'Notes']
             dialect = csv.excel
             dialect.lineterminator = '\n' 
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames, dialect=dialect)
             writer.writeheader()
             for shipment in shipments:
                 row = dict()
-                row['date'] = shipment['Shipment Date']
-                row['description'] = 'Amazon'
-                row['charge'] = shipment['Total Charged']
+                row['Date'] = shipment['Shipment Date']
+                row['Description'] = 'Amazon'
+                row['Deposit'] = shipment['Total Charged'].replace('$','')
+                row['Notes'] = shipment['Order ID'] + ' ' + shipment['Carrier Name & Tracking Number']
                 for item in orderItems[shipment['Order ID']]:
-                    row['description'] += ' %s(%s)' % (item['Title'], item['Item Total'])
-                logging.debug("%s %s %s" % (row['date'], row['description'], row['charge']))
+                    row['Description'] += ' %s(%s)' % (item['Title'], item['Item Total'])
+                logging.debug("%s %s %s\n  %s" % (row['Date'], row['Description'], row['Deposit'], row['Notes']))
                 writer.writerow(row)
             
                  
-        # :TODO: Design: 
-        # 1) create a hash of orders indexed by order id
-        # 2) add objects to orders based on order ID (shipments and items) (there are 2 lists in each order shipments and items
-        # 3) go through the orders  
         # 4) order 104-7065965-1464218 has 1 item with 2 shipments
         # 5) sum of purchace price in items equals subtotal (price without tax).  Use Total Charge
 
