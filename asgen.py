@@ -22,6 +22,8 @@ import logging
 import csv
 from collections import defaultdict
 import argparse
+import os
+from datetime import datetime, timedelta
 
 def main():
     parser = argparse.ArgumentParser(description='Amazon Statment Generator')
@@ -44,12 +46,14 @@ def main():
             fileBuff = fd.read()
             reader = csv.DictReader(fileBuff.splitlines())
             headers = reader.fieldnames
-            if 'Title' in headers:
+            if 'Title' in headers: 
                 logging.info("file %s contains items" % fileName)
                 items = reader
             elif 'Total Charged' in headers:
                 logging.info("file %s contains shipments" % fileName)
                 shipments = reader
+                shipmentsFileName_w_ext = os.path.basename(fileName)
+                shipmentsFileName = os.path.join(os.path.dirname(fileName),os.path.splitext(shipmentsFileName_w_ext)[0]) 
             else:
                 sys.stderr.write("Error - Invalid cvs file " + fileName + ".  Not items or shipments\n")
                 
@@ -60,11 +64,14 @@ def main():
     fieldnames = ['Account','Date', 'Description', 'Deposit', 'Notes']
     dialect = csv.excel
     dialect.lineterminator = '\n' 
-
+    
     for shipment in shipments:
         row = dict()
         row['Account'] = shipment['Payment Instrument Type']
-        row['Date'] = shipment['Shipment Date']
+        # transaction date is at least 1 day after shipping
+        transactionDate = datetime.strptime(shipment['Shipment Date'], '%m/%d/%y') + timedelta(days=1)
+        row['Date'] = transactionDate.strftime('%m/%d/%y')
+        # logging.debug("%s %s" % (shipment['Shipment Date'], row['Date'])) 
         row['Description'] = 'Amazon'
         row['Deposit'] = shipment['Total Charged'].replace('$','')
 
@@ -87,7 +94,9 @@ def main():
         if row['Account'] in outFiles:
             writer = csv.DictWriter(outFiles[row['Account']], fieldnames=fieldnames, dialect=dialect)
         else:
-            csvfilename = "%s-out.csv" % row['Account']
+            keepcharacters = (' ','.','_')
+            safeAccount = "".join(c for c in row['Account'] if c.isalnum() or c in keepcharacters).rstrip()
+            csvfilename = "%s-%s-out.csv" % (shipmentsFileName, safeAccount)
             logging.debug("%s - file - %s\n" % (row['Account'], csvfilename))
             csvfile = open(csvfilename, 'w')
             outFiles[row['Account']] = csvfile
