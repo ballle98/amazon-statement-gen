@@ -24,6 +24,7 @@ from collections import defaultdict
 import argparse
 import os
 from datetime import datetime, timedelta
+import glob
 
 def main():
     parser = argparse.ArgumentParser(description='Amazon Statment Generator')
@@ -32,16 +33,20 @@ def main():
     
     args = parser.parse_args()
 
-    if args.verbose == 1:
-        logging.basicConfig(level=logging.INFO)
-    elif args.verbose > 1:
-        logging.basicConfig(level=logging.DEBUG)
+    if args.verbose:
+        if args.verbose == 1:
+            logging.basicConfig(level=logging.INFO)
+        elif args.verbose > 1:
+            logging.basicConfig(level=logging.DEBUG)
             
-    logging.info("verbosity level = %d" % args.verbose)
+        logging.info("verbosity level = %d" % args.verbose)
        
     orderItems = defaultdict(list)
-
-    for fileName in args.filenames:
+    globFileNames = list()
+    for item in args.filenames:
+        globFileNames += glob.glob(item)
+    for fileName in globFileNames:    
+        logging.debug("file %s" % fileName)    
         with open(fileName, 'r') as fd:
             fileBuff = fd.read()
             reader = csv.DictReader(fileBuff.splitlines())
