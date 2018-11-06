@@ -66,7 +66,7 @@ def main():
         orderItems[item['Order ID']].append(item)   
 
     outFiles = dict()    
-    fieldnames = ['Account','Date', 'Description', 'Deposit', 'Notes']
+    fieldnames = ['Account','Date', 'Description', 'Withdrawal', 'Notes']
     dialect = csv.excel
     dialect.lineterminator = '\n' 
     
@@ -78,7 +78,7 @@ def main():
         row['Date'] = transactionDate.strftime('%m/%d/%y')
         # logging.debug("%s %s" % (shipment['Shipment Date'], row['Date'])) 
         row['Description'] = 'Amazon'
-        row['Deposit'] = shipment['Total Charged'].replace('$','')
+        row['Withdrawal'] = shipment['Total Charged'].replace('$','')
 
         row['Notes'] = shipment['Order ID'] + ' ' + shipment['Carrier Name & Tracking Number']
         for item in orderItems[shipment['Order ID']]:
@@ -94,7 +94,7 @@ def main():
         if promo > 0:
             # The total charge is the sum of item totals minus promos
             row['Description'] += '(promo -$%.2f)' % (promo)
-        logging.debug("%s %s %s %s\n  %s" % (row['Account'], row['Date'], row['Description'], row['Deposit'], row['Notes']))
+        logging.debug("%s %s %s %s\n  %s" % (row['Account'], row['Date'], row['Description'], row['Withdrawal'], row['Notes']))
 
         if row['Account'] in outFiles:
             writer = csv.DictWriter(outFiles[row['Account']], fieldnames=fieldnames, dialect=dialect)
