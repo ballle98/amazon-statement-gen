@@ -47,7 +47,7 @@ def main():
         globFileNames += glob.glob(item)
     for fileName in globFileNames:    
         logging.debug("file %s" % fileName)    
-        with open(fileName, 'r') as fd:
+        with open(fileName, 'r', encoding="utf8") as fd:
             fileBuff = fd.read()
             reader = csv.DictReader(fileBuff.splitlines())
             headers = reader.fieldnames
@@ -103,7 +103,7 @@ def main():
             safeAccount = "".join(c for c in row['Account'] if c.isalnum() or c in keepcharacters).rstrip()
             csvfilename = "%s-%s-out.csv" % (shipmentsFileName, safeAccount)
             logging.debug("%s - file - %s\n" % (row['Account'], csvfilename))
-            csvfile = open(csvfilename, 'w')
+            csvfile = open(csvfilename, 'w', encoding="utf8")
             outFiles[row['Account']] = csvfile
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames, dialect=dialect)
             writer.writeheader()
