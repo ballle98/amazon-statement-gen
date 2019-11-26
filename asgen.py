@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 '''
-asgen -- Amazon Statment Generator
+asgen -- Amazon Statement Generator
 
 asgen is a description
 
@@ -25,9 +25,12 @@ import argparse
 import os
 from datetime import datetime, timedelta
 import glob
+import re
+import subprocess
+
 
 def main():
-    parser = argparse.ArgumentParser(description='Amazon Statment Generator')
+    parser = argparse.ArgumentParser(description='Amazon Statement Generator')
     parser.add_argument('--verbose', '-v', action='count')
     parser.add_argument('filenames', nargs='*')
     
@@ -42,29 +45,43 @@ def main():
         logging.info("verbosity level = %d" % args.verbose)
        
     orderItems = defaultdict(list)
+    shipments = list()
+    chaseTransactions = list()
+    pdfTextFiles = list()
+
     globFileNames = list()
     for item in args.filenames:
         globFileNames += glob.glob(item)
     for fileName in globFileNames:    
-        logging.debug("file %s" % fileName)    
-        with open(fileName, 'r', encoding="utf8") as fd:
-            fileBuff = fd.read()
-            reader = csv.DictReader(fileBuff.splitlines())
-            headers = reader.fieldnames
-            if 'Title' in headers: 
-                logging.info("file %s contains items" % fileName)
-                items = reader
-            elif 'Total Charged' in headers:
-                logging.info("file %s contains shipments" % fileName)
-                shipments = reader
-                shipmentsFileName_w_ext = os.path.basename(fileName)
-                shipmentsFileName = os.path.join(os.path.dirname(fileName),os.path.splitext(shipmentsFileName_w_ext)[0]) 
-            else:
-                sys.stderr.write("Error - Invalid cvs file " + fileName + ".  Not items or shipments\n")
+        logging.debug("file %s" % fileName)
+        if os.path.splitext(fileName)[1] == '.pdf':
+            logging.info("file is pdf")
+            subprocess.run(["pdftotext", "-table", fileName])
+            pdfTextFiles.append("%s.txt" % os.path.splitext(fileName)[0])
+            chaseTransactionsFileName = os.path.splitext(fileName)[0] 
+        else:
+            with open(fileName, 'r', encoding="utf8") as fd:
+                fileBuff = fd.read()
+                reader = csv.DictReader(fileBuff.splitlines())
+                headers = reader.fieldnames
+                if 'Transaction Date' in headers:
+                    logging.info("file %s contains transactions" % fileName)
+                    chaseTransactions = reader
+                    chaseTransactionsFileName_w_ext = os.path.basename(fileName)
+                    chaseTransactionsFileName = os.path.join(os.path.dirname(fileName),os.path.splitext(chaseTransactionsFileName_w_ext)[0]) 
+                elif 'Title' in headers: 
+                    logging.info("file %s contains items" % fileName)
+                    items = reader
+                    for item in items:
+                        orderItems[item['Order ID']].append(item)   
+                elif 'Total Charged' in headers:
+                    logging.info("file %s contains shipments" % fileName)
+                    shipments = reader
+                    shipmentsFileName_w_ext = os.path.basename(fileName)
+                    shipmentsFileName = os.path.join(os.path.dirname(fileName),os.path.splitext(shipmentsFileName_w_ext)[0]) 
+                else:
+                    sys.stderr.write("Error - Invalid csv file " + fileName + ".  Not items or shipments\n")
                 
-    for item in items:
-        orderItems[item['Order ID']].append(item)   
-
     outFiles = dict()    
     fieldnames = ['Account','Date', 'Description', 'Withdrawal', 'Notes']
     dialect = csv.excel
@@ -110,7 +127,96 @@ def main():
         
         writer.writerow(row)
 
+    for transact in chaseTransactions:
+        match = re.search(r'^(AMZN|Amazon\.com).*\*(\w+)',transact['Description'])
+        if match:
+            amznLocator = match.group(2) 
+            logging.info("amznLocator %s" % amznLocator)
+        else:
+            continue
+        
+        row = dict()
+        row['Account'] = 'Prime Visa'
+        row['Date'] = transact['Post Date']
+        # logging.debug("%s %s" % (shipment['Shipment Date'], row['Date'])) 
+        row['Description'] = 'Amazon'
+        row['Withdrawal'] = transact['Amount'].replace('-','')
 
+        row['Notes'] = amznLocator
+#         for item in orderItems[shipment['Order ID']]:
+#             # Note: if the quanity is > 1 it is possible 1 item can come
+#             # in multiple shipments in that case the item total will be
+#             # the sum of the total charges.
+#             quantity = ''
+#             if int(item['Quantity']) > 1:
+#                 quantity = '%sx ' % item['Quantity']
+#             row['Description'] += ' %s%s(%s)' % (quantity, item['Title'], item['Item Total'])
+#             row['Notes'] += ' %s' % (item['Category'])
+
+        logging.debug("%s %s %s %s\n  %s" % (row['Account'], row['Date'], row['Description'], row['Withdrawal'], row['Notes']))
+
+        if row['Account'] in outFiles:
+            writer = csv.DictWriter(outFiles[row['Account']], fieldnames=fieldnames, dialect=dialect)
+        else:
+            keepcharacters = (' ','.','_')
+            safeAccount = "".join(c for c in row['Account'] if c.isalnum() or c in keepcharacters).rstrip()
+            csvfilename = "%s-%s-out.csv" % (chaseTransactionsFileName, safeAccount)
+            logging.debug("%s - file - %s\n" % (row['Account'], csvfilename))
+            csvfile = open(csvfilename, 'w', encoding="utf8")
+            outFiles[row['Account']] = csvfile
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames, dialect=dialect)
+            writer.writeheader()
+        
+        writer.writerow(row)
+        
+    for pdfTextFile in pdfTextFiles:
+        logging.debug("reading %s" % pdfTextFile)
+        with open(pdfTextFile) as f:
+            fileBuff = f.read()
+            match = re.search(r'^\s*Opening/Closing Date\s+(\d+)/\d+/(\d+) - \d+/\d+/(\d+)', fileBuff, re.M)  # @UndefinedVariable
+            if match:
+                openMonth = match[1]
+                openYear = match[2]
+                closeYear = match[3]
+                logging.debug("Opening/Closing %s %s %s" % (openMonth, openYear, closeYear))
+            matches = re.findall(r'^\s*(\d\d)/(\d\d)\s+(AMZN|Amazon\.com).*\s+(-?\d+\.\d\d)$\s+Order Number\s+(\d+-\d+-\d+)', fileBuff, re.M)  # @UndefinedVariable
+            for match in matches:
+                row = dict()
+                row['Account'] = 'Prime Visa'
+                if match[0] == openMonth:
+                    row['Date'] = '%s/%s/%s' % (match[0], match[1], openYear)     
+                else:
+                    row['Date'] = '%s/%s/%s' % (match[0], match[1], closeYear)
+                row['Description'] = 'Amazon'
+                row['Withdrawal'] = match[3]
+                row['Notes'] = 'Order Number %s' % (match[4])
+                for item in orderItems[match[4]]:
+                    # Note: if the quanity is > 1 it is possible 1 item can come
+                    # in multiple shipments in that case the item total will be
+                    # the sum of the total charges.
+                    quantity = ''
+                    if int(item['Quantity']) > 1:
+                        quantity = '%sx ' % item['Quantity']
+                    row['Description'] += ' %s%s(%s)' % (quantity, item['Title'], item['Item Total'])
+                    row['Notes'] += ' %s' % (item['Category'])
+                row['Description'] += ' %s' % match[4]
+                logging.debug("%s %s %s %s\n  %s" % (row['Account'], row['Date'], row['Description'], row['Withdrawal'], row['Notes']))
+
+                if row['Account'] in outFiles:
+                    writer = csv.DictWriter(outFiles[row['Account']], fieldnames=fieldnames, dialect=dialect)
+                else:
+                    keepcharacters = (' ','.','_')
+                    safeAccount = "".join(c for c in row['Account'] if c.isalnum() or c in keepcharacters).rstrip()
+                    csvfilename = "%s-%s-out.csv" % (chaseTransactionsFileName, safeAccount)
+                    logging.debug("%s - file - %s\n" % (row['Account'], csvfilename))
+                    csvfile = open(csvfilename, 'w', encoding="utf8")
+                    outFiles[row['Account']] = csvfile
+                    writer = csv.DictWriter(csvfile, fieldnames=fieldnames, dialect=dialect)
+                    writer.writeheader()
+                
+                writer.writerow(row)
+                
+            
 
 if __name__ == "__main__":
     sys.exit(main())
