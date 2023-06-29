@@ -189,7 +189,7 @@ def main():
                 openYear = match[2]
                 closeYear = match[3]
                 logging.debug("Opening/Closing %s %s %s" % (openMonth, openYear, closeYear))
-            matches = re.findall(r'^\s*(\d\d)/(\d\d)\s+(AMZN|Amazon\.com).*\s+(-?\d+\.\d\d)$\s+Order Number\s+(\S+-\d+-\d+)', fileBuff, re.M)  # @UndefinedVariable
+            matches = re.findall(r'^\s*(\d\d)/(\d\d)\s+(AMZN|Amazon\.com|Prime Video).*\s+(-?\d*\.\d\d)$\s+Order Number\s+(\S+-\d+-\d+)', fileBuff, re.M)  # @UndefinedVariable
             for match in matches:
                 row = dict()
                 row['Account'] = 'Prime Visa'
