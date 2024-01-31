@@ -106,13 +106,20 @@ def main():
     for pdfTextFile in pdfTextFiles:
         logging.debug("reading %s" % pdfTextFile)
         with open(pdfTextFile) as f:
-            fileBuff = f.read().replace('`', '')
-            match = re.search(r'^\s*Opening/Closing Date\s+(\d+)/\d+/(\d+) - \d+/\d+/(\d+)', fileBuff, re.M)  # @UndefinedVariable
+            origFileBuff = f.read().replace('`', '')
+            match = re.search(r'^\s*Opening/Closing Date\s+(\d+)/\d+/(\d+) - \d+/\d+/(\d+)', origFileBuff, re.M)  # @UndefinedVariable
             if match:
                 openMonth = match[1]
                 openYear = match[2]
                 closeYear = match[3]
                 logging.debug("Opening/Closing %s %s %s" % (openMonth, openYear, closeYear))
+            # Clean up the filebuff to
+            fileBuff = ""
+            for line in origFileBuff.split('\n'):
+                match = re.search(r'^(\s*(\d\d)/(\d\d)\s+((AMZN|Amazon\.com|Prime Video).*)\s+(-?\d*\.\d\d))|(\s+Order Number\s+(\S+-\d+-\d+))', line)
+                if match:
+                    fileBuff += "%s\n" % line
+            logging.debug(fileBuff)
             matches = re.findall(r'^\s*(\d\d)/(\d\d)\s+((AMZN|Amazon\.com|Prime Video).*)\s+(-?\d*\.\d\d)$\s+Order Number\s+(\S+-\d+-\d+)', fileBuff, re.M)  # @UndefinedVariable
             for match in matches:
                 row = dict()
