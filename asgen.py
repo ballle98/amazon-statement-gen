@@ -83,9 +83,9 @@ def main():
                     logging.info("file %s contains credit card Transaction and Post Dates" % fileName)
                     chaseTransactions = reader
                     for transact in chaseTransactions:
-                        match = re.search(r'^(AMZN|Amazon\.com|Prime Video).*', transact['Description'])
+                        match = re.search(r'^(AMZN|Amazon\.com|Prime Video|AMAZON).*', transact['Description'])
                         if match:
-                            match2 = re.search(r'^(AMZN|Amazon\.com|Prime Video).*\*(\w+)', transact['Description'])
+                            match2 = re.search(r'^(AMZN|Amazon\.com|Prime Video|AMAZON).*\*(\w+)', transact['Description'])
                             transact['Amount'] = str(-float(transact['Amount']))
                             if match2:
                                 amznLocator = match2.group(2)
@@ -116,11 +116,11 @@ def main():
             # Clean up the filebuff to
             fileBuff = ""
             for line in origFileBuff.split('\n'):
-                match = re.search(r'^(\s*(\d\d)/(\d\d)\s+((AMZN|Amazon\.com|Prime Video).*)\s+(-?\d*\.\d\d))|(\s+Order Number\s+(\S+-\d+-\d+))', line)
+                match = re.search(r'^(\s*(\d\d)/(\d\d)\s+((AMZN|Amazon\.com|Prime Video|AMAZON).*)\s+(-?\d*\.\d\d))|(\s+Order Number\s+(\S+-\d+-\d+))', line)
                 if match:
                     fileBuff += "%s\n" % line
             logging.debug(fileBuff)
-            matches = re.findall(r'^\s*(\d\d)/(\d\d)\s+((AMZN|Amazon\.com|Prime Video).*)\s+(-?\d*\.\d\d)$\s+Order Number\s+(\S+-\d+-\d+)', fileBuff, re.M)  # @UndefinedVariable
+            matches = re.findall(r'^\s*(\d\d)/(\d\d)\s+((AMZN|Amazon\.com|Prime Video|AMAZON).*)\s+(-?\d*\.\d\d)$\s+Order Number\s+(\S+-\d+-\d+)', fileBuff, re.M)  # @UndefinedVariable
             for match in matches:
                 row = dict()
                 row['Account'] = 'Prime Visa'
@@ -134,7 +134,7 @@ def main():
                 row['Withdrawal'] = match[4]
                 row['Notes'] = 'Order Number %s' % (match[5])
 
-                match2 = re.search(r'^(AMZN|Amazon\.com|Prime Video).*\*(\w+)', origDescription)
+                match2 = re.search(r'^(AMZN|Amazon\.com|Prime Video|AMAZON).*\*(\w+)', origDescription)
                 if match2:
                     amznLocator = match2.group(2)
                     logging.info("amznLocator %s" % amznLocator)
