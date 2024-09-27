@@ -3,11 +3,13 @@
 '''
 asgen -- Amazon Statement Generator
 
-asgen statements from a Amazon Prime Visa card and combines them with order history from Amazon
+asgen statements from a Amazon Prime Visa card and combines them with order
+history from Amazon
 
 Download Xpdf command line tools from https://www.xpdfreader.com/download.html
 
-Amazon retired Order History Tool in March 2023, Now use Amazon Order History Reporter Chrome plugin
+Amazon retired Order History Tool in March 2023, Now use Amazon Order History
+Reporter Chrome plugin
 https://chrome.google.com/webstore/detail/amazon-order-history-repo/mgkilgclilajckgnedgjgnfdokkgnibi
 
 @author:     lee Ballard
@@ -107,7 +109,8 @@ def main():
         logging.debug("reading %s" % pdfTextFile)
         with open(pdfTextFile) as f:
             origFileBuff = f.read().replace('`', '')
-            match = re.search(r'^\s*Opening/Closing Date\s+(\d+)/\d+/(\d+) - \d+/\d+/(\d+)', origFileBuff, re.M)  # @UndefinedVariable
+            match = re.search(r'^\s*Opening/Closing Date\s+(\d+)/\d+/(\d+) - \d+/\d+/(\d+)',
+                              origFileBuff, re.M)  # @UndefinedVariable
             if match:
                 openMonth = match[1]
                 openYear = match[2]
@@ -115,12 +118,26 @@ def main():
                 logging.debug("Opening/Closing %s %s %s" % (openMonth, openYear, closeYear))
             # Clean up the filebuff to
             fileBuff = ""
-            for line in origFileBuff.split('\n'):
-                match = re.search(r'^(\s*(\d\d)/(\d\d)\s+((AMZN|Amazon\.com|Prime Video|AMAZON).*)\s+(-?\d*\.\d\d))|(\s+Order Number\s+(\S+-\d+-\d+))', line)
-                if match:
-                    fileBuff += "%s\n" % line
+
+            # regex patterns
+            date_pattern = r'^\s*(\d\d)/(\d\d)\s+'
+            amazon_pattern = r'(AMZN|Amazon|Prime Video|AMAZON|Kindle|Audible).*'
+            descript_pattern = rf'({amazon_pattern})\s+'
+            withdraw_pattern = r'(-?\d*\.\d\d)'
+            order_pattern = r'\s+Order Number\s+(\S+-\d+-\d+)'
+
+            # get rid of any extra stuff like page breaks etc.
+            fileBuff = "\n".join(
+                line for line in origFileBuff.split('\n')
+                    if re.search(
+                        f'{date_pattern}{descript_pattern}{withdraw_pattern}|{order_pattern}',
+                        line)
+            )
+
             logging.debug(fileBuff)
-            matches = re.findall(r'^\s*(\d\d)/(\d\d)\s+((AMZN|Amazon\.com|Prime Video|AMAZON).*)\s+(-?\d*\.\d\d)$\s+Order Number\s+(\S+-\d+-\d+)', fileBuff, re.M)  # @UndefinedVariable
+            matches = re.findall(
+                rf'{date_pattern}{descript_pattern}{withdraw_pattern}$\s+{order_pattern}',
+                fileBuff, re.M)
             for match in matches:
                 row = dict()
                 row['Account'] = 'Prime Visa'
@@ -134,7 +151,7 @@ def main():
                 row['Withdrawal'] = match[4]
                 row['Notes'] = 'Order Number %s' % (match[5])
 
-                match2 = re.search(r'^(AMZN|Amazon\.com|Prime Video|AMAZON).*\*(\w+)', origDescription)
+                match2 = re.search(rf'^{amazon_pattern}\*(\w+)', origDescription)
                 if match2:
                     amznLocator = match2.group(2)
                     logging.info("amznLocator %s" % amznLocator)
