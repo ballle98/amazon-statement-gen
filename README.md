@@ -5,6 +5,8 @@ This tool takes a Prime Visa statement as a PDF and extracts the order IDs using
 Amazon retired Order History Tool in March 2023, Now use Amazon Order History Reporter Chrome plugin
 https://chrome.google.com/webstore/detail/amazon-order-history-repo/mgkilgclilajckgnedgjgnfdokkgnibi
 
+developed here https://github.com/philipmulcahy/azad
+
 # usage 
 ```
 usage: asgen.py [-h] [--verbose] [filenames ...]
