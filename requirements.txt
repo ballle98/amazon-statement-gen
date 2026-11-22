@@ -1,1 +1,2 @@
-amazon-orders>=4.0.18
+# asgen requires Python 3.12+.
+amazon-orders>=6.0,<7

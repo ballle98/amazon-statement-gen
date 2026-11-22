@@ -46,6 +46,10 @@ def main():
     Returns:
         None
     """
+    if sys.version_info < (3, 12):
+        sys.stderr.write("Error - Python 3.12 or newer is required\n")
+        return 1
+
     parser = argparse.ArgumentParser(description='Amazon Statement Generator')
     parser.add_argument('--verbose', '-v', action='count')
     parser.add_argument('--amazon-username', '-u', action='append', default=[],
@@ -163,10 +167,12 @@ def main():
                     for username, password in zip(usernames, passwords):
                         logging.info("Fetching orders from Amazon for %s year %d",
                                      username, year)
-                        amazon_session = AmazonSession(username, password)
+                        amazon_session = AmazonSession(
+                            username, password,
+                            otp_secret_key=os.environ.get('AMAZON_OTP_SECRET_KEY'))
                         amazon_session.login()
                         amazon_orders = AmazonOrders(amazon_session)
-                        fetched_orders = amazon_orders.get_order_history(
+                        fetched_orders = amazon_orders.get_orders(
                             year=year, full_details=True)
                         logging.info("Successfully fetched %d orders for %s year %d",
                                      len(fetched_orders), username, year)
