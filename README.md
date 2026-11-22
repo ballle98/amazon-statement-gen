@@ -9,7 +9,13 @@ developed here https://github.com/philipmulcahy/azad
 
 When an orders report CSV is not available, the tool can fetch order history directly from Amazon using the [amazon-orders](https://github.com/alexdlaird/amazon-orders) library.
 
+# Requirements
+
+- Python 3.12 or newer
+- `pdftotext` from [Xpdf](https://www.xpdfreader.com/download.html) or Poppler on `PATH`
+
 # Installation
+
 Windows (recommended - use installation script):
 ```
 powershell -ExecutionPolicy Bypass -File install.ps1
@@ -18,9 +24,7 @@ Or manual installation:
 ```
 py -m venv venv
 venv\Scripts\activate
-py -m pip install click requests beautifulsoup4 PyYAML python-dateutil pyotp pillow
-py -m pip install amazoncaptcha --no-deps
-py -m pip install amazon-orders --no-deps
+py -m pip install -r requirements.txt
 ```
 Or install directly (Windows doesn't restrict system-wide installs):
 ```
@@ -35,9 +39,7 @@ Or manual installation:
 ```
 python3 -m venv venv
 source venv/bin/activate
-pip install click requests beautifulsoup4 PyYAML python-dateutil pyotp pillow
-pip install amazoncaptcha --no-deps
-pip install amazon-orders --no-deps
+pip install -r requirements.txt
 ```
 Or install system-wide with `--break-system-packages` (not recommended):
 ```
@@ -101,6 +103,7 @@ Or use environment variables for a single account:
 ```
 export AMAZON_USERNAME=user@email.com
 export AMAZON_PASSWORD=mypass
+export AMAZON_OTP_SECRET_KEY=your-totp-secret   # optional, for 2FA accounts
 python asgen.py statement.pdf chase.csv
 ```
 
