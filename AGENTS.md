@@ -38,7 +38,13 @@ python3 asgen.py -vv statement.pdf [orders.csv] [items.csv] [transactions.csv]
 - Preserve the stderr messages and `*-error.txt` reporting for unmatched orders/transactions when refactoring.
 - Relative paths resolve against the current directory. Output lands next to the input PDF, not necessarily in the CWD.
 
+## Commits
+
+- Lowercase imperative subject; body explains behavior or environment assumptions.
+- Required trailers:
+  `Assisted-by: <Tool>:<Model>` and `Signed-off-by: <Name> <email>`
+
 ## OpenCode
 
-- `.opencode/opencode.json` enables the `opencode-planner` plugin. Design specs live in `.opencode/plans/*.md`; they describe proposed work (GnuCash/`piecash`, Cloudflare app), not implemented behavior.
+- `.opencode/opencode.json` enables the `opencode-planner` plugin. Plan files are per-session scratch in `.opencode/plans/*.md`, which is gitignored; they describe proposed work (GnuCash/`piecash`, Cloudflare app), not implemented behavior.
 - `docs/roadmap.md` is the durable scope. The GitHub Phase 1 epic and its linked issues are the canonical task list; keep both in sync.

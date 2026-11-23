@@ -4,3 +4,6 @@ dist/
 __pycache__/
 venv/
 
+# opencode per-session plan files: scratch, not durable context.
+.opencode/plans/*
+
