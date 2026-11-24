@@ -2,7 +2,7 @@
 
 ## What this is
 
-`asgen.py` is a single-file Python CLI (all logic in `main()`). It combines Chase Prime Visa statement PDFs with Amazon order data and emits GnuCash-importable CSVs. There is no package layout, test suite, CI, linter, or formatter config.
+`asgen.py` is the CLI entrypoint; `parse.py` handles input detection and statement parsing, `match.py` looks up Chase transactions, and `emit.py` builds rows and writes CSV/error files. Amazon fetching stays in the CLI. It combines Chase Prime Visa statement PDFs with Amazon order data and emits GnuCash-importable CSVs. There is no package layout, CI, linter, or formatter config, and the golden harness is the only test.
 
 ## Run and verify
 
@@ -11,9 +11,9 @@ python3 asgen.py --help
 python3 asgen.py -vv statement.pdf [orders.csv] [items.csv] [transactions.csv]
 ```
 
-- **Python 3.12+ is required** — `asgen.py` uses PEP 701 nested same-quote f-strings, and `main()` exits on older versions. The install scripts check this up front.
+- **Python 3.12+ is required** — the CLI and `emit.py` use PEP 701 nested same-quote f-strings, and `main()` exits on older versions. The install scripts check this up front.
 - `pdftotext` (Xpdf or Poppler) must be on `PATH`.
-- The only test is `python3 tests/run_golden.py`: synthetic fixtures in `tests/fixtures/`, checked-in expected CSV in `tests/expected/`. It runs fully offline (no Amazon calls, no `pdftotext`) and uses `venv/bin/python3` when `venv/` exists. Also run `python3 -m py_compile asgen.py`, `--help`, and a real statement run when changing matching. Do not claim tests pass without running them.
+- The only test is `python3 tests/run_golden.py`: synthetic fixtures in `tests/fixtures/`, checked-in expected CSV in `tests/expected/`. It runs fully offline (no Amazon calls, no `pdftotext`) and uses `venv/bin/python3` when `venv/` exists. Also run `python3 -m py_compile asgen.py parse.py match.py emit.py`, `--help`, and a real statement run when changing matching. Do not claim tests pass without running them.
 - `-v` enables INFO, `-vv` enables DEBUG logging.
 
 ## Install and build traps
@@ -25,10 +25,10 @@ python3 asgen.py -vv statement.pdf [orders.csv] [items.csv] [transactions.csv]
 
 ## Data flow
 
-1. `filenames` are globbed. `.pdf` inputs run `pdftotext -table -enc UTF-8 <file>`, which writes `<file>.txt` beside the PDF. `--statement-text FILE` (repeatable) reads already-extracted text instead, so the golden test needs no PDF or `pdftotext`. Other files are classified by CSV header: `payments` = History Reporter orders, `item url` = History Reporter items, `Post Date` = Chase transactions.
+1. `parse.collect_statement_files` globs `filenames`; `.pdf` inputs run `pdftotext -table -enc UTF-8 <file>`, which writes `<file>.txt` beside the PDF. `--statement-text FILE` (repeatable) reads already-extracted text instead, so the golden test needs no PDF or `pdftotext`. `parse.load_csvs` classifies other files by header: `payments` = History Reporter orders, `item url` = History Reporter items, `Post Date` = Chase transactions.
 2. Amazon fetching runs only when no History Reporter CSV was seen. Years come from the statement's `Opening/Closing Date` (both years for a January statement); `--year` overrides. Repeated `--amazon-username`/`--amazon-password` pairs are zipped and must be equal length, or fetching is skipped.
-3. Statement text is filtered by regex; each `Order Number` row is matched to a Chase transaction by Amazon locator (`AMZN*XXXX`) first, then by transaction date + amount.
-4. Output is written beside each statement (PDF or `--statement-text` file) as `<basename>-Prime Visa-out.csv`; unmatched items go to `<basename>-Prime Visa-error.txt`. The `Account` value is hardcoded to `Prime Visa`.
+3. `parse.parse_statement` filters statement text by regex; `match.find_transaction` matches each `Order Number` row to a Chase transaction by Amazon locator (`AMZN*XXXX`) first, then by transaction date + amount. `match.build_indexes` owns the Chase lookup tables and negates `Amount` on read.
+4. `emit.write_statements` writes beside each statement (PDF or `--statement-text` file) as `<basename>-Prime Visa-out.csv`; unmatched items go to `<basename>-Prime Visa-error.txt`. The `Account` value is hardcoded to `Prime Visa`.
 
 ## Editing gotchas
 
