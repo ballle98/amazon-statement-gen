@@ -1,0 +1,13 @@
+Synthetic Chase Prime Visa statement - test fixture only.
+Opening/Closing Date   12/28/25 - 01/27/26
+
+ACCOUNT ACTIVITY
+    Date   Description                                   Amount
+    12/29  AMZN*AB12CD3                                 14.99
+           Order Number 113-1234567-1234567
+    01/03  Amazon Prime Video                           16.49
+           Order Number 114-7654321-7654321
+    01/15  AMZN*XY98ZW7                                 7.51
+           Order Number 115-1111111-2222222
+
+Page 2 of 2

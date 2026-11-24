@@ -13,7 +13,7 @@ python3 asgen.py -vv statement.pdf [orders.csv] [items.csv] [transactions.csv]
 
 - **Python 3.12+ is required** — `asgen.py` uses PEP 701 nested same-quote f-strings, and `main()` exits on older versions. The install scripts check this up front.
 - `pdftotext` (Xpdf or Poppler) must be on `PATH`.
-- No tests exist. Verify changes with `python3 -m py_compile asgen.py`, `--help`, and a real statement run. Do not claim tests pass.
+- The only test is `python3 tests/run_golden.py`: synthetic fixtures in `tests/fixtures/`, checked-in expected CSV in `tests/expected/`. It runs fully offline (no Amazon calls, no `pdftotext`) and uses `venv/bin/python3` when `venv/` exists. Also run `python3 -m py_compile asgen.py`, `--help`, and a real statement run when changing matching. Do not claim tests pass without running them.
 - `-v` enables INFO, `-vv` enables DEBUG logging.
 
 ## Install and build traps
@@ -25,10 +25,10 @@ python3 asgen.py -vv statement.pdf [orders.csv] [items.csv] [transactions.csv]
 
 ## Data flow
 
-1. `filenames` are globbed. `.pdf` inputs run `pdftotext -table -enc UTF-8 <file>`, which writes `<file>.txt` beside the PDF. Other files are classified by CSV header: `payments` = History Reporter orders, `item url` = History Reporter items, `Post Date` = Chase transactions.
+1. `filenames` are globbed. `.pdf` inputs run `pdftotext -table -enc UTF-8 <file>`, which writes `<file>.txt` beside the PDF. `--statement-text FILE` (repeatable) reads already-extracted text instead, so the golden test needs no PDF or `pdftotext`. Other files are classified by CSV header: `payments` = History Reporter orders, `item url` = History Reporter items, `Post Date` = Chase transactions.
 2. Amazon fetching runs only when no History Reporter CSV was seen. Years come from the statement's `Opening/Closing Date` (both years for a January statement); `--year` overrides. Repeated `--amazon-username`/`--amazon-password` pairs are zipped and must be equal length, or fetching is skipped.
 3. Statement text is filtered by regex; each `Order Number` row is matched to a Chase transaction by Amazon locator (`AMZN*XXXX`) first, then by transaction date + amount.
-4. Output is written beside each PDF as `<pdf-basename>-Prime Visa-out.csv`; unmatched items go to `<pdf-basename>-Prime Visa-error.txt`. The `Account` value is hardcoded to `Prime Visa`.
+4. Output is written beside each statement (PDF or `--statement-text` file) as `<basename>-Prime Visa-out.csv`; unmatched items go to `<basename>-Prime Visa-error.txt`. The `Account` value is hardcoded to `Prime Visa`.
 
 ## Editing gotchas
 

@@ -67,6 +67,7 @@ This creates `dist/asgen.exe` (Windows) or `dist/asgen` (Linux) - a single file 
 ```
 usage: asgen.py [-h] [--verbose] [--amazon-username AMAZON_USERNAME]
                 [--amazon-password AMAZON_PASSWORD] [--year YEAR]
+                [--statement-text FILE]
                 [filenames ...]
 
 Amazon Statement Generator
@@ -80,6 +81,7 @@ options:
   --amazon-username      Amazon username (repeatable, or set AMAZON_USERNAME env var)
   --amazon-password      Amazon password (repeatable, or set AMAZON_PASSWORD env var)
   --year YEAR            Year to fetch Amazon order history for
+  --statement-text FILE  Already-extracted statement text (repeatable); skips pdftotext
 ```
 
 Multiple statement PDFs and multiple Chase transaction CSVs are supported. Each statement PDF produces its own output CSV. The year(s) needed for fetching Amazon order history are automatically extracted from the statement Opening/Closing Date (including both years for January statements that span two years). The `--year` flag overrides auto-detection.
@@ -106,6 +108,21 @@ export AMAZON_PASSWORD=mypass
 export AMAZON_OTP_SECRET_KEY=your-totp-secret   # optional, for 2FA accounts
 python asgen.py statement.pdf chase.csv
 ```
+
+Use `--statement-text FILE` when you already have text extracted from a statement
+(repeatable). It bypasses `pdftotext` and writes the output CSV next to that file,
+using its basename. This is the input hook used by the offline golden-file test.
+
+# Verification
+
+```bash
+python3 tests/run_golden.py
+```
+
+The harness copies synthetic fixtures to a scratch directory, runs the CLI with
+`--statement-text`, and diffs the generated CSV against `tests/expected/`. It needs
+no network, no Amazon credentials, and no real statement data. When `venv/` exists
+the harness uses its interpreter so the installed dependencies are available.
 
 # Reference/Links
 - https://www.xpdfreader.com/pdftotext-man.html

@@ -1,0 +1,4 @@
+order id,item url,Title,Quantity,Item Total,Category
+113-1234567-1234567,https://example.invalid/dp/0000000001,Synthetic Widget,1,$14.99,Home
+114-7654321-7654321,https://example.invalid/dp/0000000002,Synthetic Video,1,$16.49,Entertainment
+115-1111111-2222222,https://example.invalid/dp/0000000003,Synthetic Gadget,2,$7.51,Electronics

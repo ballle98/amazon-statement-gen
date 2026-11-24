@@ -58,6 +58,9 @@ def main():
                         help='Amazon password (repeatable, or set AMAZON_PASSWORD env var)')
     parser.add_argument('--year', '-y', type=int, default=None,
                         help='Year to fetch Amazon order history for')
+    parser.add_argument('--statement-text', action='append', default=[], metavar='FILE',
+                        help='Already-extracted statement text (repeatable); '
+                             'skips pdftotext')
     parser.add_argument('filenames', nargs='*')
 
     args = parser.parse_args()
@@ -82,6 +85,11 @@ def main():
 
     for item in args.filenames:
         glob_file_names += glob.glob(item)
+    for text_path in args.statement_text:
+        for filename in glob.glob(text_path):
+            logging.info("statement text file specified: %s", filename)
+            base_name = os.path.splitext(filename)[0]
+            pdf_text_files.append((filename, base_name))
     for filename in glob_file_names:
         logging.debug("file %s", filename)
         if os.path.splitext(filename)[1] == '.pdf':
