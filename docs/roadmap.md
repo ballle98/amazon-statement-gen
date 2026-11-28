@@ -30,9 +30,9 @@ Completed:
 2. Add a golden-file harness with synthetic or redacted fixtures.
 3. Split the script into parse, match, and emit modules without changing behavior.
 4. Spike updating one existing GnuCash transaction description through SQLite.
+5. Enrich descriptions for all matched rows, with `--dry-run` and backup/rollback.
 
 Planned:
-5. Enrich descriptions for all matched rows, with `--dry-run` and backup/rollback.
 6. Modernize Amazon auth (persisted sessions, per-account, explicit failure).
 7. Decommission History Reporter CSV input and the CSV output emitter.
 
