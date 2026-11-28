@@ -17,20 +17,30 @@ DATE_PATTERN = r'^\s*(\d\d)/(\d\d)\s+'
 AMAZON_PATTERN = r'(AMZN|Amazon|Prime Video|AMAZON|Kindle|Audible).*'
 DESCRIPT_PATTERN = rf'({AMAZON_PATTERN})\s+'
 WITHDRAW_PATTERN = r'(-?\d*\.\d\d)'
-ORDER_PATTERN = r'\s+Order Number\s+(\S+-\d+-\d+)'
+ORDER_PATTERN = r'\s*Order Number\s+(\S+-\d+-\d+)'
 
 
-def collect_statement_files(filenames, statement_texts):
+def collect_statement_files(filenames, statement_texts, output_dir=None):
     """Return (text filename, output basename) pairs for every statement.
 
     PDFs are converted with pdftotext; --statement-text files are used as-is.
+    With output_dir, generated outputs and extracted text land there instead
+    of beside the input statement.
     """
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
+
+    def output_base(path):
+        base = os.path.splitext(path)[0]
+        if output_dir:
+            return os.path.join(output_dir, os.path.basename(base))
+        return base
+
     statement_files = []
     for text_path in statement_texts:
         for filename in glob.glob(text_path):
             logging.info("statement text file specified: %s", filename)
-            base_name = os.path.splitext(filename)[0]
-            statement_files.append((filename, base_name))
+            statement_files.append((filename, output_base(filename)))
 
     for pattern in filenames:
         for filename in glob.glob(pattern):
@@ -38,8 +48,14 @@ def collect_statement_files(filenames, statement_texts):
             if os.path.splitext(filename)[1] == '.pdf':
                 logging.info("file is pdf")
                 subprocess.run(["pdftotext", "-table", "-enc", "UTF-8", filename], check=False)
-                base_name = os.path.splitext(filename)[0]
-                statement_files.append((f"{base_name}.txt", base_name))
+                generated = f"{os.path.splitext(filename)[0]}.txt"
+                text_path = generated
+                if output_dir:
+                    text_path = os.path.join(
+                        output_dir, os.path.basename(generated))
+                    if os.path.exists(generated):
+                        os.replace(generated, text_path)
+                statement_files.append((text_path, output_base(filename)))
     return statement_files
 
 
