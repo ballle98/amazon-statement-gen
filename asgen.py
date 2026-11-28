@@ -33,6 +33,7 @@ from amazonorders.session import AmazonSession
 from amazonorders.orders import AmazonOrders
 
 import emit
+import gnucash
 import match
 import parse
 
@@ -109,9 +110,23 @@ def main():
     parser.add_argument('--statement-text', action='append', default=[], metavar='FILE',
                         help='Already-extracted statement text (repeatable); '
                              'skips pdftotext')
+    parser.add_argument('--output-dir', metavar='DIR',
+                        help='Write generated CSV, error, and report files here')
+    parser.add_argument('--gnucash-book', metavar='FILE',
+                        help='Update descriptions in this GnuCash SQLite book')
+    parser.add_argument('--gnucash-account', default=gnucash.ACCOUNT_NAME,
+                        metavar='NAME',
+                        help='GnuCash account to search (default: %(default)s)')
+    parser.add_argument('--dry-run', action='store_true',
+                        help='With --gnucash-book, report changes without writing')
+    parser.add_argument('--csv', action='store_true',
+                        help='In GnuCash mode, also write legacy CSV output')
     parser.add_argument('filenames', nargs='*')
 
     args = parser.parse_args()
+
+    if args.dry_run and not args.gnucash_book:
+        parser.error('--dry-run requires --gnucash-book')
 
     if args.verbose:
         if args.verbose == 1:
@@ -121,7 +136,8 @@ def main():
 
         logging.info("verbosity level = %d", args.verbose)
 
-    statement_files = parse.collect_statement_files(args.filenames, args.statement_text)
+    statement_files = parse.collect_statement_files(
+        args.filenames, args.statement_text, args.output_dir)
     orders, order_items, has_orders_report, chase_transactions = parse.load_csvs(
         args.filenames)
     years = parse.statement_years(statement_files)
@@ -131,7 +147,17 @@ def main():
                      orders, order_items)
 
     locators, date_amounts = match.build_indexes(chase_transactions)
-    emit.write_statements(statement_files, orders, order_items, locators, date_amounts)
+
+    if args.gnucash_book:
+        gnucash.enrich_statements(
+            statement_files, orders, order_items, locators, date_amounts,
+            args.gnucash_book, args.gnucash_account, args.dry_run)
+        if args.csv:
+            emit.write_statements(
+                statement_files, orders, order_items, locators, date_amounts)
+    else:
+        emit.write_statements(
+            statement_files, orders, order_items, locators, date_amounts)
     return 0
 
 
